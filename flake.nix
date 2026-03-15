@@ -1,10 +1,10 @@
 {
   description = "My NixOS and home-manager config using flake-parts";
 
-  inputs = rec {
+  inputs = {
     flake-parts.url = "github:hercules-ci/flake-parts";
 
-    # Import Nix modules in a directory
+    # Recursively import Nix modules in a directory
     import-tree.url = "github:vic/import-tree";
 
     # Rolling sources
@@ -15,11 +15,21 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Stable sources
     nixpkgs-stable.url = "github:NixOS/nixpkgs/release-25.11";
 
     home-manager-stable = {
       url = "github:nix-community/home-manager/release-25.11";
+      inputs.nixpkgs.follows = "nixpkgs-stable";
+    };
+
+    disko-stable = {
+      url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs-stable";
     };
   };

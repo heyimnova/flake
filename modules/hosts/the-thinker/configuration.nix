@@ -2,62 +2,66 @@
   inputs,
   self,
   ...
-}: {
-  flake.nixosConfigurations.the-thinker = inputs.nixpkgs-stable.lib.nixosSystem {
+}: let
+  # host is the name of the directory
+  host = baseNameOf ./.;
+in {
+  flake.nixosConfigurations.${host} = inputs.nixpkgs-stable.lib.nixosSystem {
     modules = [
-      self.nixosModules.the-thinker-nixos
+      # Host config
+      self.nixosModules.${host}
 
+      # Disk config
       inputs.disko-stable.nixosModules.disko
-      self.diskoConfigurations.the-thinker
+      self.diskoConfigurations.${host}
+
+      # Stable home-manager
+      inputs.home-manager-stable.nixosModules.home-manager
     ];
   };
 
-  flake.nixosModules.the-thinker-nixos = {pkgs, ...}: {
-    imports = [];
+  flake.nixosModules.${host} = {
+    imports = with self.nixosModules; [
+      nixos
+      desktop
+      gnome
+    ];
 
-    networking.hostName = "the-thinker";
+    system.stateVersion = "25.11";
 
-    # Hardware configuration
+    networking.hostName = host;
+
+    # Hardware report
     hardware.facter.reportPath = ./facter.json;
 
     # Localization
     console.keyMap = "us";
-    i18n.defaultLocale = "en_GB.UTF-8";
-
-    environment.systemPackages = with pkgs; [
-      fastfetch
-      helix
-    ];
+    i18n.defaultLocale = "en_US.UTF-8";
 
     # So I can run nixos-anywhere on this machine while testing
     security.sudo.wheelNeedsPassword = false;
     services.openssh.enable = true;
 
-    boot = {
-      #initrd.systemd.enable = true;
-
-      loader = {
-        systemd-boot.enable = true;
-        efi.canTouchEfiVariables = true;
-      };
+    boot.loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
     };
 
-    users.users.nova = {
-      isNormalUser = true;
-      extraGroups = ["wheel"];
-      initialPassword = "test";
-    };
+    # Import host home-manager module
+    home-manager.users.${self.user}.imports = [self.homeModules.${host}];
+  };
 
-    nixpkgs.config.allowUnfree = true;
-    nix.settings = {
-      auto-optimise-store = true;
+  flake.homeModules.${host} = {pkgs, ...}: {
+    imports = with self.homeModules; [
+      gnome
+    ];
 
-      experimental-features = [
-        "flakes"
-        "nix-command"
+    home = {
+      stateVersion = "25.11";
+
+      packages = with pkgs; [
+        watchmate
       ];
     };
-
-    system.stateVersion = "25.11";
   };
 }

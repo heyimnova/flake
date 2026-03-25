@@ -1,10 +1,10 @@
 {
-  flake.diskoConfigurations.the-thinker = {
+  flake.diskoConfigurations.${baseNameOf ./.} = {
     disko.devices = {
-      disk.crucial = {
+      disk.root = {
         device = "/dev/disk/by-id/ata-Crucial_CT256MX100SSD1_14420D8A5609";
         type = "disk";
-        name = "crucial";
+        name = "root";
 
         # Disk partitions
         content = {
@@ -24,7 +24,7 @@
               };
             };
 
-            luks = {
+            cryptroot = {
               size = "100%";
               name = "cryptroot";
 

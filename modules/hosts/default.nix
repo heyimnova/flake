@@ -1,16 +1,30 @@
 {self, ...}: {
   # Config for all nixos hosts
-  flake.nixosModules.nixos = {pkgs, ...}: {
+  flake.nixosModules.nixos = {
+    config,
+    pkgs,
+    ...
+  }: {
     console.font = "Lat2-Terminus16";
     time.timeZone = "Europe/London";
     documentation.nixos.enable = false;
 
-    # Create the user
-    users.users.${self.user} = {
-      description = self.userDescription;
-      isNormalUser = true;
-      extraGroups = ["wheel"];
-      initialPassword = "test";
+    users = {
+      mutableUsers = false;
+
+      users = {
+        # Disable root user password
+        root.hashedPassword = "!";
+
+        # Create the user
+        ${self.user} = {
+          description = self.userDescription;
+          home = self.userHome;
+          isNormalUser = true;
+          extraGroups = ["wheel"];
+          hashedPasswordFile = config.sops.secrets."user-password-hash".path;
+        };
+      };
     };
 
     environment = {
@@ -68,12 +82,39 @@
     nix.settings = {
       auto-optimise-store = true;
       experimental-features = ["flakes" "nix-command"];
+      trusted-users = ["root" self.user];
     };
 
     home-manager = {
       useGlobalPkgs = true;
       useUserPackages = true;
       backupFileExtension = "bak";
+    };
+
+    sops = {
+      # Set sops default file
+      #sops.defaultSopsFile = ../../secrets/secrets.yaml;
+      defaultSopsFormat = "yaml";
+
+      age = {
+        # Admin key file
+        keyFile = "/home/${self.user}/.config/sops/age/keys.txt";
+        # Import ssh host key as an age key
+        sshKeyPaths = ["/etc/ssh/ssh_host_ed25519_key"];
+      };
+
+      secrets."user-password-hash" = {
+        sopsFile = ../../secrets/${self.host}/secrets.yaml;
+        # Make sure user password hash is loaded before user creation
+        neededForUsers = true;
+      };
+    };
+
+    fileSystems = {
+      # Make sure ssh keys can be loaded at boot for sops
+      "/".neededForBoot = true;
+      # Make sure sops age admin key can be loaded at boot
+      "/home".neededForBoot = true;
     };
   };
 }

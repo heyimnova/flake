@@ -1,0 +1,13 @@
+keys:
+  - &admin_nova age1wfvh7feej2m5grl2sfv08wxcq7usah9e0he9dvv6mpa2v8nfnd4s3cg4cw
+  - &host_the-thinker age14q49ttuvmhxnexerux8v6xwd49qc6mpj3zatuqlmwz777kjcgyes78vnzw
+creation_rules:
+  - path_regex: ^secrets/[^/]+\.(yaml|json|env|ini)$
+    key_groups:
+      - age:
+          - *admin_nova
+  - path_regex: ^secrets/the-thinker/[^/]+\.(yaml|json|env|ini)$
+    key_groups:
+      - age:
+          - *admin_nova
+          - *host_the-thinker

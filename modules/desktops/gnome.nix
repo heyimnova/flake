@@ -46,7 +46,11 @@
     };
   };
 
-  flake.homeModules.gnome = {pkgs, ...}: let
+  flake.homeModules.gnome = {
+    lib,
+    pkgs,
+    ...
+  }: let
     # Enabled gnome extensions
     extensions = with pkgs.gnomeExtensions; [
       alphabetical-app-grid
@@ -83,6 +87,15 @@
         show-battery-percentage = true;
       };
 
+      "org/gnome/desktop/session" = {
+        # Screen timeout after 10 mins
+        idle-delay = lib.gvariant.mkUint32 600;
+      };
+
+      "org/gnome/desktop/wm/preferences" = {
+        button-layout = ":close";
+      };
+
       "org/gnome/GWeather4" = {
         tempurature-unit = "centigrade";
       };
@@ -100,6 +113,13 @@
         show-delete-permanently = true;
         show-directory-item-counts = "always";
         show-image-thumbnails = "always";
+      };
+
+      # Suspend after 30 mins only on battery power
+      "org/gnome/settings-daemon/plugins/power" = {
+        sleep-inactive-ac-timeout = 1800;
+        sleep-inactive-ac-type = "nothing";
+        sleep-inactive-battery-timeout = 1800;
       };
 
       # Some gnome extension settings
@@ -145,6 +165,10 @@
       "org/gtk/settings/file-chooser" = {
         clock-format = "12h";
         sort-directories-first = true;
+      };
+
+      "system/locale" = {
+        region = "en_GB.UTF-8";
       };
     };
   };

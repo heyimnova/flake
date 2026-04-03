@@ -5,6 +5,12 @@
       ghostty
       mullvad-browser
     ];
+
+    services.mullvad-vpn = {
+      enable = true;
+      # Use GUI mullvad app
+      package = pkgs.mullvad-vpn;
+    };
   };
 
   flake.homeModules.desktop = {pkgs, ...}: {

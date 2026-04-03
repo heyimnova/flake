@@ -20,6 +20,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Stable sources
     nixpkgs-stable.url = "github:NixOS/nixpkgs/release-25.11";
 
@@ -30,6 +35,11 @@
 
     disko-stable = {
       url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs-stable";
+    };
+
+    sops-nix-stable = {
+      url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs-stable";
     };
   };

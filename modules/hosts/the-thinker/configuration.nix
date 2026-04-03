@@ -6,6 +6,8 @@
   # host is the name of the directory
   host = baseNameOf ./.;
 in {
+  flake.host = host;
+
   flake.nixosConfigurations.${host} = inputs.nixpkgs-stable.lib.nixosSystem {
     modules = [
       # Host config
@@ -17,6 +19,9 @@ in {
 
       # Stable home-manager
       inputs.home-manager-stable.nixosModules.home-manager
+
+      # Secrets management
+      inputs.sops-nix-stable.nixosModules.sops
     ];
   };
 
@@ -46,6 +51,9 @@ in {
       systemd-boot.enable = true;
       efi.canTouchEfiVariables = true;
     };
+
+    # Fix Intel CPU throttling
+    services.throttled.enable = true;
 
     # Import host home-manager module
     home-manager.users.${self.user}.imports = [self.homeModules.${host}];

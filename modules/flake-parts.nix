@@ -1,5 +1,5 @@
 # flake-parts config
-{inputs, ...}: {
+{
   # Define supported systems
   systems = [
     "x86_64-linux"
@@ -8,12 +8,7 @@
     "x86_64-darwin"
   ];
 
-  # Import flakeModules
-  imports = with inputs; [
-    home-manager.flakeModules.home-manager
-  ];
-
-  # Set user settings
+  # User settings
   flake = rec {
     user = "nova";
     userDescription = "Nova";

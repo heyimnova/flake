@@ -24,39 +24,30 @@
               };
             };
 
-            cryptroot = {
+            crypt = {
               size = "100%";
-              name = "cryptroot";
+              name = "crypt";
 
               # LUKS container
               content = {
                 type = "luks";
-                name = "root";
+                name = "crypt";
                 # This needs to be created on the target machine
-                passwordFile = "/tmp/cryptroot.key";
+                passwordFile = "/tmp/crypt.key";
                 settings.allowDiscards = true;
 
                 # Filesystem
                 content = {
                   type = "btrfs";
+                  extraArgs = ["-L" "crypt" "-f"];
 
                   subvolumes = {
+                    # Root subvolume is wiped on boot
                     "@" = {
                       mountpoint = "/";
 
                       mountOptions = [
-                        "compress=zstd"
-                        "discard=async"
-                        "noatime"
-                      ];
-                    };
-
-                    "@home" = {
-                      mountpoint = "/home";
-
-                      mountOptions = [
-                        "compress=zstd"
-                        "discard=async"
+                        "compress=zstd:2"
                         "noatime"
                       ];
                     };
@@ -65,15 +56,39 @@
                       mountpoint = "/nix";
 
                       mountOptions = [
-                        "compress=zstd"
-                        "discard=async"
+                        "compress=zstd:2"
                         "noatime"
                       ];
                     };
 
-                    "@swap" = {
-                      mountpoint = "/var/swap";
-                      swap.swapfile.size = "4G";
+                    # Files persisted with preservation
+                    "@persist" = {
+                      mountpoint = "/persist";
+
+                      mountOptions = [
+                        "compress=zstd:2"
+                        "noatime"
+                      ];
+                    };
+
+                    # System logs are persisted here
+                    "@log" = {
+                      mountpoint = "/var/log";
+
+                      mountOptions = [
+                        "compress=zstd:2"
+                        "noatime"
+                      ];
+                    };
+
+                    # Subvolume for /tmp so it avoids root snapshots (cleaned on boot separately)
+                    "@tmp" = {
+                      mountpoint = "/tmp";
+
+                      mountOptions = [
+                        "compress=zstd:2"
+                        "noatime"
+                      ];
                     };
                   };
                 };

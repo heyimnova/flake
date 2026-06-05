@@ -35,9 +35,11 @@ in {
 
       # Base desktop config
       self.nixosModules.desktop
+      self.nixosModules.desktopPreservation
 
       # GNOME desktop config
       self.nixosModules.gnome
+      self.nixosModules.gnomePreservation
     ];
   };
 
@@ -63,6 +65,11 @@ in {
         enable = true;
         # We will provide host keys
         generateHostKeys = false;
+
+        #settings = {
+        #  PasswordAuthentication = false;
+        #  PermitRootLogin = "no";
+        #};
       };
     };
 
@@ -75,7 +82,7 @@ in {
       efi.canTouchEfiVariables = true;
     };
 
-    # Extra files to persist on this host
+    # Files to preserve on this host
     preservation.preserveAt."/persist" = {
       directories = [
         # Bluetooth device config

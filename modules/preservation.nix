@@ -1,6 +1,6 @@
 # Modules for impermanent systems
 {self, ...}: {
-  # Preservation to manage persisted files
+  # Preservation to manage persistent files
   flake.nixosModules.preservation = {
     # Mount persistent subvolume at boot
     fileSystems."/persist".neededForBoot = true;
@@ -16,17 +16,14 @@
             file = "/etc/ssh/ssh_host_ed25519_key";
             how = "symlink";
           }
-
           {
             file = "/etc/ssh/ssh_host_ed25519_key.pub";
             how = "symlink";
           }
-
           {
             file = "/etc/ssh/ssh_host_rsa_key";
             how = "symlink";
           }
-
           {
             file = "/etc/ssh/ssh_host_rsa_key.pub";
             how = "symlink";
@@ -54,12 +51,28 @@
 
           # fwupd state
           "/var/lib/fwupd"
+
+          # sudo lectured users
+          {
+            directory = "/var/db/sudo/lectured";
+            mode = "0700";
+            configureParent = true;
+            parent.mode = "0711";
+          }
         ];
 
         users.${self.user} = {
+          commonMountOptions = [
+            # Hide bind mounts in user home
+            "x-gvfs-hide"
+          ];
+
           files = [];
 
           directories = [
+            # Default system flake location
+            ".config/flake"
+
             # sops keys
             ".config/sops"
 
@@ -70,19 +83,17 @@
       };
     };
 
-    systemd = {
-      # Let service commit machine id to persistent subvolume
-      services.systemd-machine-id-commit = {
-        unitConfig.ConditionPathIsMount = [
-          ""
-          "/persist/etc/machine-id"
-        ];
+    # Let service commit machine id to persistent subvolume
+    systemd.services.systemd-machine-id-commit = {
+      unitConfig.ConditionPathIsMount = [
+        ""
+        "/persist/etc/machine-id"
+      ];
 
-        serviceConfig.ExecStart = [
-          ""
-          "systemd-machine-id-setup --commit --root /persist"
-        ];
-      };
+      serviceConfig.ExecStart = [
+        ""
+        "systemd-machine-id-setup --commit --root /persist"
+      ];
     };
   };
 
@@ -109,6 +120,13 @@
           mkdir /btrfs_tmp
           mount -o compress=zstd,noatime /dev/mapper/crypt /btrfs_tmp
 
+          # Backup root subvolume
+          if [[ -e /btrfs_tmp/@ ]]; then
+            mkdir -p /btrfs_tmp/old_roots
+            timestamp=$(date --date="@$(stat -c %Y /btrfs_tmp/@)" "+%Y-%m-%d_%H:%M:%S")
+            mv /btrfs_tmp/@ "/btrfs_tmp/old_roots/$timestamp"
+          fi
+
           delete_subvolume_recursively() {
             IFS=$'\n'
             for i in $(btrfs subvolume list -o "$1" | cut -f 9- -d ' '); do
@@ -117,17 +135,9 @@
             btrfs subvolume delete "$1"
           }
 
-          # Save a read only snapshot of the current root subvolume
-          if [[ -e /btrfs_tmp/@ ]]; then
-            mkdir -p /btrfs_tmp/old_roots
-            timestamp=$(date --date="@$(stat -c %Y /btrfs_tmp/@)" "+%Y-%m-%d_%H:%M:%S")
-            btrfs subvolume snapshot -r /btrfs_tmp/@ "/btrfs_tmp/old_roots/$timestamp"
-            delete_subvolume_recursively /btrfs_tmp/@
-          fi
-
           # Delete expired root subvolumes
           for i in $(find /btrfs_tmp/old_roots/ -maxdepth 1 -mtime +7); do
-            btrfs subvolume delete "$i"
+            delete_subvolume_recursively "$i"
           done
 
           # Create new root subvolume

@@ -17,11 +17,37 @@
       package = pkgs.mullvad-vpn;
     };
 
-    # Extra files to persist on desktops
+    boot = {
+      # Boot options time out after 1 second
+      loader.timeout = 1;
+
+      # Splash screen on boot
+      plymouth = {
+        enable = true;
+        theme = "blahaj";
+        themePackages = with pkgs; [
+          plymouth-blahaj-theme
+        ];
+      };
+
+      # Only show errors on boot
+      consoleLogLevel = 3;
+      kernelParams = [
+        "quiet"
+        "rd.udev.log_level=3"
+        "rd.systemd.show_status=auto"
+      ];
+    };
+  };
+
+  flake.nixosModules.desktopPreservation = {
     preservation.preserveAt."/persist" = {
       directories = [
         # Network configurations
         "/etc/NetworkManager/system-connections"
+
+        # Mullvad VPN config
+        "/etc/mullvad-vpn"
       ];
 
       users.${self.user} = {
@@ -30,19 +56,23 @@
         ];
 
         directories = [
-          # XDG directories
+          # XDG directories (Downloads and Desktop not preserved)
           "Documents"
           "Music"
           "Pictures"
+          "Projects"
+          "Public"
           "Templates"
           "Videos"
 
-          # User keyrings
+          ".config/autostart"
           ".local/share/keyrings"
 
+          # Desktop apps state
           ".config/Bitwarden"
           ".config/Proton Mail"
           ".config/qBittorrent"
+          # Mullvad VPN GUI config
           ".config/Mullvad VPN"
         ];
       };

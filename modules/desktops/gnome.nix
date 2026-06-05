@@ -170,11 +170,15 @@
         ];
       };
     };
+  };
 
-    # Extra files to persist on GNOME
+  flake.nixosModules.gnomePreservation = {
     preservation.preserveAt."/persist".users.${self.user}.directories = [
       # dconf database
       ".config/dconf"
+
+      # gsconnect keys
+      ".config/gsconnect"
     ];
   };
 }

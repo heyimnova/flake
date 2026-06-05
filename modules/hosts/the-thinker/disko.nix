@@ -61,7 +61,7 @@
                       ];
                     };
 
-                    # Files persisted with preservation
+                    # Persistent files managed with preservation here
                     "@persist" = {
                       mountpoint = "/persist";
 
@@ -71,7 +71,7 @@
                       ];
                     };
 
-                    # System logs are persisted here
+                    # System logs are preserved here
                     "@log" = {
                       mountpoint = "/var/log";
 

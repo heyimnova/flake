@@ -7,7 +7,7 @@
     # Recursively import Nix modules in a directory
     import-tree.url = "github:vic/import-tree";
 
-    # Persist files on impermanent systems
+    # Preserve files on impermanent systems
     preservation.url = "github:nix-community/preservation";
 
     # Rolling sources

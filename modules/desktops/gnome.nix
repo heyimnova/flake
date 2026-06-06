@@ -4,7 +4,7 @@
     pkgs,
     ...
   }: let
-    # Enabled gnome extensions
+    # Enabled GNOME extensions
     extensions = with pkgs.gnomeExtensions; [
       alphabetical-app-grid
       appindicator
@@ -17,12 +17,19 @@
       status-area-horizontal-spacing
     ];
   in {
+    imports = [
+      # Import base desktop config
+      self.nixosModules.desktop
+      # Import preservation module
+      self.nixosModules.gnomePreservation
+    ];
+
     services = {
       displayManager.gdm.enable = true;
       desktopManager.gnome.enable = true;
 
       gnome = {
-        # Exclude some gnome applications
+        # Exclude some GNOME applications
         core-developer-tools.enable = false;
         games.enable = false;
       };
@@ -41,7 +48,7 @@
         ])
         ++ extensions;
 
-      # Exclude some more gnome applications
+      # Exclude some more GNOME applications
       gnome.excludePackages = with pkgs; [
         epiphany
         geary
@@ -117,7 +124,7 @@
                 sleep-inactive-battery-timeout = lib.gvariant.mkInt32 1800;
               };
 
-              # Some gnome extension settings
+              # Some GNOME extension settings
               "org/gnome/shell/extensions/alphabetical-app-grid".folder-order-position = "end";
               "org/gnome/shell/extensions/caffeine".enable-fullscreen = false;
               "org/gnome/shell/extensions/hotedge".show-animation = false;
@@ -172,13 +179,20 @@
     };
   };
 
+  # Files to preserve on GNOME desktops
   flake.nixosModules.gnomePreservation = {
-    preservation.preserveAt."/persist".users.${self.user}.directories = [
-      # dconf database
-      ".config/dconf"
+    config,
+    lib,
+    ...
+  }: {
+    config = lib.mkIf config.preservation.enable {
+      preservation.preserveAt."/persist".users.${config.settings.user}.directories = [
+        # dconf database
+        ".config/dconf"
 
-      # gsconnect keys
-      ".config/gsconnect"
-    ];
+        # gsconnect keys
+        ".config/gsconnect"
+      ];
+    };
   };
 }

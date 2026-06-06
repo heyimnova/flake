@@ -1,22 +1,27 @@
 # Secrets management
-{self, ...}: {
-  flake.nixosModules.secrets = {
+{
+  flake.nixosModules.secrets = {config, ...}: {
     sops = {
-      #defaultSopsFile = ../secrets/secrets.yaml;
+      defaultSopsFile = ../secrets/${config.networking.hostName}.yaml;
       defaultSopsFormat = "yaml";
 
-      age = {
-        # Admin key file
-        # If any keys fail to load secrets will not be loaded !!
-        #keyFile = "/persist/home/${self.user}/.config/sops/age/keys.txt";
+      age.sshKeyPaths = [
         # Import ssh host key as an age key
-        sshKeyPaths = ["/persist/etc/ssh/ssh_host_ed25519_key"];
-      };
+        "/etc/ssh/ssh_host_ed25519_key"
+        # Key will be in /persist on impermanent hosts
+        "/persist/etc/ssh/ssh_host_ed25519_key"
+      ];
 
-      secrets."user-password-hash" = {
-        sopsFile = ../secrets/${self.host}/secrets.yaml;
+      secrets = {
         # Make sure user password hash is loaded before user creation
-        neededForUsers = true;
+        "user-password-hash".neededForUsers = true;
+
+        # Key to be added to authorized_keys
+        "ssh-authorized-key" = {
+          mode = "0600";
+          owner = config.users.users.${config.settings.user}.name;
+          group = config.users.users.${config.settings.user}.group;
+        };
       };
     };
   };

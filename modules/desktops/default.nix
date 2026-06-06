@@ -1,6 +1,14 @@
 # Base desktop config
 {self, ...}: {
   flake.nixosModules.desktop = {pkgs, ...}: {
+    # Import preservation module
+    imports = [self.nixosModules.desktopPreservation];
+
+    nixpkgs.config.permittedInsecurePackages = [
+      # Needed by bitwarden-desktop
+      "electron-39.8.10"
+    ];
+
     environment.systemPackages = with pkgs; [
       bitwarden-desktop
       caligula
@@ -40,41 +48,48 @@
     };
   };
 
+  # Files to preserve on all desktops
   flake.nixosModules.desktopPreservation = {
-    preservation.preserveAt."/persist" = {
-      directories = [
-        # Network configurations
-        "/etc/NetworkManager/system-connections"
-
-        # Mullvad VPN config
-        "/etc/mullvad-vpn"
-      ];
-
-      users.${self.user} = {
-        files = [
-          ".local/share/qBittorrent/logs/qbittorrent.log"
-        ];
-
+    config,
+    lib,
+    ...
+  }: {
+    config = lib.mkIf config.preservation.enable {
+      preservation.preserveAt."/persist" = {
         directories = [
-          # XDG directories (Downloads and Desktop not preserved)
-          "Documents"
-          "Music"
-          "Pictures"
-          "Projects"
-          "Public"
-          "Templates"
-          "Videos"
+          # Network configurations
+          "/etc/NetworkManager/system-connections"
 
-          ".config/autostart"
-          ".local/share/keyrings"
-
-          # Desktop apps state
-          ".config/Bitwarden"
-          ".config/Proton Mail"
-          ".config/qBittorrent"
-          # Mullvad VPN GUI config
-          ".config/Mullvad VPN"
+          # Mullvad VPN config
+          "/etc/mullvad-vpn"
         ];
+
+        users.${config.settings.user} = {
+          files = [
+            ".local/share/qBittorrent/logs/qbittorrent.log"
+          ];
+
+          directories = [
+            # XDG directories (Downloads and Desktop not preserved)
+            "Documents"
+            "Music"
+            "Pictures"
+            "Projects"
+            "Public"
+            "Templates"
+            "Videos"
+
+            ".config/autostart"
+            ".local/share/keyrings"
+
+            # Desktop apps state
+            ".config/Bitwarden"
+            ".config/Proton Mail"
+            ".config/qBittorrent"
+            # Mullvad VPN GUI config
+            ".config/Mullvad VPN"
+          ];
+        };
       };
     };
   };

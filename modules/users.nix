@@ -1,5 +1,5 @@
 # User config for all hosts
-{self, ...}: {
+{
   flake.nixosModules.users = {config, ...}: {
     users = {
       mutableUsers = false;
@@ -13,9 +13,9 @@
         };
 
         # Create the user
-        ${self.user} = {
-          description = self.userDescription;
-          home = self.userHome;
+        ${config.settings.user} = {
+          description = config.settings.userDescription;
+          home = config.settings.userHome;
           isNormalUser = true;
           extraGroups = ["wheel"];
           hashedPasswordFile = config.sops.secrets."user-password-hash".path;

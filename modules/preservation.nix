@@ -2,103 +2,18 @@
 {self, ...}: {
   # Preservation to manage persistent files
   flake.nixosModules.preservation = {
+    # Enables all relevant preservation modules
+    preservation.enable = true;
+
     # Mount persistent subvolume at boot
     fileSystems."/persist".neededForBoot = true;
 
-    preservation = {
-      enable = true;
-
-      # Files to keep on reboot on all hosts
-      preserveAt."/persist" = {
-        files = [
-          # ssh host keys (provide these on installation)
-          {
-            file = "/etc/ssh/ssh_host_ed25519_key";
-            how = "symlink";
-          }
-          {
-            file = "/etc/ssh/ssh_host_ed25519_key.pub";
-            how = "symlink";
-          }
-          {
-            file = "/etc/ssh/ssh_host_rsa_key";
-            how = "symlink";
-          }
-          {
-            file = "/etc/ssh/ssh_host_rsa_key.pub";
-            how = "symlink";
-          }
-
-          # Host machine-id (see systemd config below)
-          {
-            file = "/etc/machine-id";
-            inInitrd = true;
-          }
-        ];
-
-        directories = [
-          # NixOS user state
-          {
-            directory = "/var/lib/nixos";
-            inInitrd = true;
-          }
-
-          # systemd timer units
-          "/var/lib/systemd/timers"
-
-          # Battery state
-          "/var/lib/upower"
-
-          # fwupd state
-          "/var/lib/fwupd"
-
-          # sudo lectured users
-          {
-            directory = "/var/db/sudo/lectured";
-            mode = "0700";
-            configureParent = true;
-            parent.mode = "0711";
-          }
-        ];
-
-        users.${self.user} = {
-          commonMountOptions = [
-            # Hide bind mounts in user home
-            "x-gvfs-hide"
-          ];
-
-          files = [];
-
-          directories = [
-            # Default system flake location
-            ".config/flake"
-
-            # sops keys
-            ".config/sops"
-
-            # nix user state
-            ".local/state/nix"
-          ];
-        };
-      };
-    };
-
-    # Let service commit machine id to persistent subvolume
-    systemd.services.systemd-machine-id-commit = {
-      unitConfig.ConditionPathIsMount = [
-        ""
-        "/persist/etc/machine-id"
-      ];
-
-      serviceConfig.ExecStart = [
-        ""
-        "systemd-machine-id-setup --commit --root /persist"
-      ];
-    };
+    # Import impermanence module
+    imports = [self.nixosModules.btrfsImpermanence];
   };
 
   # Handle wiping root on boot
-  flake.nixosModules.impermanence = {
+  flake.nixosModules.btrfsImpermanence = {
     boot = {
       # Wipe /tmp on boot
       tmp.cleanOnBoot = true;

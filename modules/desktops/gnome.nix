@@ -1,5 +1,6 @@
 {self, ...}: {
-  flake.nixosModules.gnome = {
+  flake.modules.nixos.gnome = {
+    config,
     lib,
     pkgs,
     ...
@@ -17,12 +18,8 @@
       status-area-horizontal-spacing
     ];
   in {
-    imports = [
-      # Import base desktop config
-      self.nixosModules.desktop
-      # Import preservation module
-      self.nixosModules.gnomePreservation
-    ];
+    # Import base desktop config
+    imports = [self.modules.nixos.desktop];
 
     services = {
       displayManager.gdm.enable = true;
@@ -38,7 +35,6 @@
     environment = {
       systemPackages =
         (with pkgs; [
-          mousai
           warp
 
           (writeShellScriptBin "xdg-terminal-exec" ''
@@ -177,22 +173,21 @@
         ];
       };
     };
-  };
 
-  # Files to preserve on GNOME desktops
-  flake.nixosModules.gnomePreservation = {
-    config,
-    lib,
-    ...
-  }: {
-    config = lib.mkIf config.preservation.enable {
-      preservation.preserveAt."/persist".users.${config.settings.user}.directories = [
-        # dconf database
-        ".config/dconf"
+    # Files to preserve on GNOME desktops
+    preservation.preserveAt."/persist".users.${self.settings.user}.directories = lib.mkIf config.preservation.enable [
+      # dconf database
+      ".config/dconf"
 
-        # gsconnect keys
-        ".config/gsconnect"
-      ];
-    };
+      # gsconnect keys
+      ".config/gsconnect"
+
+      # Warp config
+      {
+        directory = ".config/warp";
+        how = "symlink";
+        createLinkTarget = true;
+      }
+    ];
   };
 }

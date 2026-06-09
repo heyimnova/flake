@@ -1,54 +1,53 @@
 # flake-parts config
-{inputs, ...}: {
-  # Define supported systems
-  systems = [
-    "x86_64-linux"
-    "aarch64-linux"
-    "aarch64-darwin"
-    "x86_64-darwin"
+{
+  self,
+  inputs,
+  lib,
+  ...
+}: {
+  # Import flake parts flakeModules
+  imports = [
+    inputs.flake-parts.flakeModules.modules
+    inputs.disko.flakeModules.disko
+    inputs.home-manager.flakeModules.home-manager
   ];
 
-  flake.nixosModules.base = {
-    config,
-    lib,
-    ...
-  }: {
-    imports = [
-      # Most modules need options.preservation.enable to be defined
-      inputs.preservation.nixosModules.default
-    ];
+  # Flake user settings
+  options.flake.settings = with lib;
+    mkOption {
+      description = "User settings shared between modules";
+      type = types.submodule {
+        options = {
+          user = mkOption {type = types.str;};
+          userDescription = mkOption {type = types.str;};
+          userHome = mkOption {type = types.str;};
+        };
 
-    # User settings
-    options.settings = {
-      user = lib.mkOption {
-        default = "nova";
-        type = lib.types.str;
-      };
-
-      userDescription = lib.mkOption {
-        default = "Nova";
-        type = lib.types.str;
-      };
-
-      userHome = lib.mkOption {
-        default = "/home/${config.settings.user}";
-        type = lib.types.str;
+        # Default user settings
+        config = {
+          user = mkDefault "nova";
+          userDescription = mkDefault "Nova";
+          userHome = mkDefault "/home/${self.settings.user}";
+        };
       };
     };
 
-    # Nix and nixpkgs config
-    config = {
-      nixpkgs.config.allowUnfree = true;
+  config = {
+    # Define supported systems
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "aarch64-darwin"
+    ];
 
-      nix.settings = {
-        auto-optimise-store = true;
-        experimental-features = [
-          "flakes"
-          "nix-command"
-        ];
-        trusted-users = [
-          "root"
-          config.settings.user
+    # Shared nixpkgs config
+    flake.modules.generic.nixpkgsConfig = {
+      nixpkgs = {
+        config.allowUnfree = true;
+
+        # Nix User Repository overlay
+        overlays = [
+          inputs.nur.overlays.default
         ];
       };
     };

@@ -1,7 +1,7 @@
 # Modules for impermanent systems
 {self, ...}: {
   # Preservation to manage persistent files
-  flake.nixosModules.preservation = {
+  flake.modules.nixos.preservation = {
     # Enables all relevant preservation modules
     preservation.enable = true;
 
@@ -9,11 +9,11 @@
     fileSystems."/persist".neededForBoot = true;
 
     # Import impermanence module
-    imports = [self.nixosModules.btrfsImpermanence];
+    imports = [self.modules.nixos.btrfsImpermanence];
   };
 
   # Handle wiping root on boot
-  flake.nixosModules.btrfsImpermanence = {
+  flake.modules.nixos.btrfsImpermanence = {
     boot = {
       # Wipe /tmp on boot
       tmp.cleanOnBoot = true;

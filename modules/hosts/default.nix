@@ -1,19 +1,39 @@
-{self, ...}: {
+{
+  self,
+  inputs,
+  ...
+}: {
   # Config for all NixOS hosts
-  flake.nixosModules.nixos = {
+  flake.modules.nixos.base = {
     config,
     lib,
     pkgs,
     ...
   }: {
     imports = [
-      # Base module for all hosts
-      self.nixosModules.base
+      # Most modules need config.preservation.enable to be defined
+      inputs.preservation.nixosModules.default
+      # Many modules need config.sops to be defined
+      inputs.sops-nix.nixosModules.sops
+      # Configure nixpkgs
+      self.modules.generic.nixpkgsConfig
+      # Set up secrets
+      self.modules.nixos.secrets
       # User config for all hosts
-      self.nixosModules.users
-      # Preservation module for all hosts
-      self.nixosModules.nixosPreservation
+      self.modules.nixos.users
     ];
+
+    nix.settings = {
+      auto-optimise-store = true;
+      experimental-features = [
+        "flakes"
+        "nix-command"
+      ];
+      trusted-users = [
+        "root"
+        self.settings.user
+      ];
+    };
 
     console.font = "Lat2-Terminus16";
     time.timeZone = "Europe/London";
@@ -27,6 +47,7 @@
         curl
         eza
         pciutils
+        tealdeer
         unzip
       ];
 
@@ -83,102 +104,81 @@
           PasswordAuthentication = false;
           KbdInteractiveAuthentication = false;
           PermitRootLogin = "no";
-          AllowUsers = [config.settings.user];
+          AllowUsers = [self.settings.user];
         };
       };
     };
-  };
 
-  # Files to preserve on all hosts
-  flake.nixosModules.nixosPreservation = {
-    config,
-    lib,
-    ...
-  }: {
-    config = lib.mkIf config.preservation.enable {
-      preservation.preserveAt."/persist" = {
-        files = [
-          # ssh host keys (provide these on installation)
-          {
-            file = "/etc/ssh/ssh_host_ed25519_key";
-            how = "symlink";
-          }
-          {
-            file = "/etc/ssh/ssh_host_ed25519_key.pub";
-            how = "symlink";
-          }
-          {
-            file = "/etc/ssh/ssh_host_rsa_key";
-            how = "symlink";
-          }
-          {
-            file = "/etc/ssh/ssh_host_rsa_key.pub";
-            how = "symlink";
-          }
+    # Files to preserve on all hosts
+    preservation.preserveAt."/persist" = lib.mkIf config.preservation.enable {
+      files = [
+        # ssh host keys (provide these on installation)
+        {
+          file = "/etc/ssh/ssh_host_ed25519_key";
+          how = "symlink";
+        }
+        {
+          file = "/etc/ssh/ssh_host_ed25519_key.pub";
+          how = "symlink";
+        }
+        {
+          file = "/etc/ssh/ssh_host_rsa_key";
+          how = "symlink";
+        }
+        {
+          file = "/etc/ssh/ssh_host_rsa_key.pub";
+          how = "symlink";
+        }
 
-          # Host machine-id (see systemd config below)
-          {
-            file = "/etc/machine-id";
-            inInitrd = true;
-          }
-        ];
+        # Host machine-id (see systemd config below)
+        {
+          file = "/etc/machine-id";
+          inInitrd = true;
+        }
+      ];
 
-        directories = [
-          # NixOS user state
-          {
-            directory = "/var/lib/nixos";
-            inInitrd = true;
-          }
+      directories = [
+        # NixOS user state
+        {
+          directory = "/var/lib/nixos";
+          inInitrd = true;
+        }
 
-          # systemd timer units
-          "/var/lib/systemd/timers"
+        # systemd timer units
+        "/var/lib/systemd/timers"
 
-          # Battery state
-          "/var/lib/upower"
+        # Battery state
+        "/var/lib/upower"
 
-          # fwupd state
-          "/var/lib/fwupd"
+        # fwupd state
+        "/var/lib/fwupd"
 
-          # sudo lectured users
-          {
-            directory = "/var/db/sudo/lectured";
-            mode = "0700";
-            configureParent = true;
-            parent.mode = "0711";
-          }
-        ];
+        # sudo lectured users
+        {
+          directory = "/var/db/sudo/lectured";
+          mode = "0700";
+          configureParent = true;
+          parent.mode = "0711";
+        }
+      ];
 
-        users.${config.settings.user} = {
-          commonMountOptions = [
-            # Hide bind mounts in user home
-            "x-gvfs-hide"
-          ];
+      users.${self.settings.user}.directories = [
+        # tldr page cache
+        ".cache/tealdeer"
+      ];
+    };
 
-          directories = [
-            # Default system flake location
-            ".config/flake"
+    # Let service commit machine id to persistent dir when preservation is enabled
+    systemd.services.systemd-machine-id-commit = lib.mkIf config.preservation.enable {
+      unitConfig.ConditionPathIsMount = [
+        ""
+        "/persist/etc/machine-id"
+      ];
 
-            # sops keys
-            ".config/sops"
-
-            # nix user state
-            ".local/state/nix"
-          ];
-        };
-      };
-
-      # Let service commit machine id to persistent subvolume
-      systemd.services.systemd-machine-id-commit = {
-        unitConfig.ConditionPathIsMount = [
-          ""
-          "/persist/etc/machine-id"
-        ];
-
-        serviceConfig.ExecStart = [
-          ""
-          "systemd-machine-id-setup --commit --root /persist"
-        ];
-      };
+      serviceConfig.ExecStart = [
+        ""
+        "systemd-machine-id-setup --commit --root /persist"
+      ];
     };
   };
 }

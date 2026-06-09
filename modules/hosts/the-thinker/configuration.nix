@@ -6,34 +6,34 @@
   # host is the name of the directory
   host = baseNameOf ./.;
 in {
-  flake.nixosConfigurations.${host} = inputs.nixpkgs-stable.lib.nixosSystem {
+  flake.nixosConfigurations.${host} = inputs.nixpkgs.lib.nixosSystem {
     modules = [
       # Disk config
-      inputs.disko-stable.nixosModules.disko
+      inputs.disko.nixosModules.disko
       self.diskoConfigurations.${host}
 
-      # Secrets management
-      inputs.sops-nix-stable.nixosModules.sops
-      self.nixosModules.secrets
-
       # Impermanence config (enable preservation)
-      self.nixosModules.preservation
+      self.modules.nixos.preservation
+
+      # home-manager
+      self.modules.nixos.home
 
       # Host config
-      self.nixosModules.${host}
+      self.modules.nixos.${host}
 
       # GNOME desktop config
-      self.nixosModules.gnome
+      self.modules.nixos.gnome
     ];
   };
 
-  flake.nixosModules.${host} = {pkgs, ...}: {
-    imports = [
-      # Import base host config
-      self.nixosModules.nixos
-      # Import preservation module
-      self.nixosModules."${host}Preservation"
-    ];
+  flake.modules.nixos.${host} = {
+    config,
+    lib,
+    pkgs,
+    ...
+  }: {
+    # Import base host config
+    imports = [self.modules.nixos.base];
 
     system.stateVersion = "26.05";
 
@@ -71,29 +71,14 @@ in {
       systemd-boot.enable = true;
       efi.canTouchEfiVariables = true;
     };
-  };
 
-  # Files to preserve on this host
-  flake.nixosModules."${host}Preservation" = {
-    config,
-    lib,
-    ...
-  }: {
-    config = lib.mkIf config.preservation.enable {
-      preservation.preserveAt."/persist" = {
-        directories = [
-          # Bluetooth device config
-          "/var/lib/bluetooth"
+    # Files to preserve on this host
+    preservation.preserveAt."/persist".directories = lib.mkIf config.preservation.enable [
+      # Bluetooth device config
+      "/var/lib/bluetooth"
 
-          # rfkill state
-          "/var/lib/systemd/rfkill"
-        ];
-
-        users.${config.settings.user}.directories = [
-          # Audio state
-          ".local/state/wireplumber"
-        ];
-      };
-    };
+      # rfkill state
+      "/var/lib/systemd/rfkill"
+    ];
   };
 }

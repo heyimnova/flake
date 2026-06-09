@@ -1,7 +1,9 @@
 {
-  description = "My NixOS config using flake-parts";
+  description = "My NixOS and home-manager config using flake-parts";
 
   inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     # Recursively import Nix modules in a directory
@@ -10,30 +12,34 @@
     # Preserve files on impermanent systems
     preservation.url = "github:nix-community/preservation";
 
-    # Rolling sources
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Nix User Repository
+    nur = {
+      url = "github:nix-community/NUR";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
+    # Disk management
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Secrets management
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Stable sources
-    nixpkgs-stable.url = "github:NixOS/nixpkgs/release-26.05";
-
-    disko-stable = {
-      url = "github:nix-community/disko";
-      inputs.nixpkgs.follows = "nixpkgs-stable";
+    # User home management
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    sops-nix-stable = {
-      url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs-stable";
+    # Spotify themeing
+    spicetify-nix = {
+      url = "github:Gerg-L/spicetify-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 

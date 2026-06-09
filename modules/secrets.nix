@@ -1,6 +1,6 @@
 # Secrets management
-{
-  flake.nixosModules.secrets = {config, ...}: {
+{self, ...}: {
+  flake.modules.nixos.secrets = {config, ...}: {
     sops = {
       defaultSopsFile = ../secrets/${config.networking.hostName}.yaml;
       defaultSopsFormat = "yaml";
@@ -19,8 +19,8 @@
         # Key to be added to authorized_keys
         "ssh-authorized-key" = {
           mode = "0600";
-          owner = config.users.users.${config.settings.user}.name;
-          group = config.users.users.${config.settings.user}.group;
+          owner = config.users.users.${self.settings.user}.name;
+          group = config.users.users.${self.settings.user}.group;
         };
       };
     };
